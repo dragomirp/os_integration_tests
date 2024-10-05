@@ -136,14 +136,15 @@ async def test_no_data_replicated_between_clusters(
     # Deploy another cluster.
     new_cluster_app = f"second-{app}"
     if not await app_name(ops_test, new_cluster_app):
-        charm = await ops_test.build_charm(".")
         async with ops_test.fast_forward():
             await ops_test.model.deploy(
-                charm,
+                CHARM,
+                channel=CHANNEL,
                 application_name=new_cluster_app,
                 num_units=2,
                 base=CHARM_BASE,
-                config={"profile": "testing"},
+                storage={"pgdata": {"pool": POOL, "size": 2048}},
+                config={"profile": PROFILE},
             )
             await ops_test.model.wait_for_idle(
                 apps=[new_cluster_app], status="active", timeout=1500
