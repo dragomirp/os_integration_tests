@@ -38,6 +38,12 @@ STORAGE_PATH = METADATA["storage"]["pgdata"]["location"]
 APPLICATION_NAME = "postgresql-test-app"
 MOVE_RESTORED_CLUSTER_TO_ANOTHER_BUCKET = "Move restored cluster to another S3 bucket"
 
+# SET THIS TO THE ENV SPECIFIC VALUES
+CHARM = "postgresql"
+CHANNEL = "14/stable"
+POOL = "lxd-btrfs"
+PROFILE = "testing"
+
 logger = logging.getLogger(__name__)
 
 
@@ -69,7 +75,9 @@ async def build_connection_string(
     data = yaml.safe_load(raw_data)
     # Filter the data based on the relation name.
     relation_data = [
-        v for v in data[unit_name]["relation-info"] if v["related-endpoint"] == relation_name
+        v
+        for v in data[unit_name]["relation-info"]
+        if v["related-endpoint"] == relation_name
     ]
     if len(relation_data) == 0:
         raise ValueError(
@@ -115,7 +123,9 @@ def get_patroni_cluster(unit_ip: str) -> Dict[str, str]:
 
 
 def assert_sync_standbys(unit_ip: str, standbys: int) -> None:
-    for attempt in Retrying(stop=stop_after_delay(60), wait=wait_fixed(3), reraise=True):
+    for attempt in Retrying(
+        stop=stop_after_delay(60), wait=wait_fixed(3), reraise=True
+    ):
         with attempt:
             cluster = get_patroni_cluster(unit_ip)
             cluster_standbys = 0
@@ -232,8 +242,12 @@ async def check_cluster_members(ops_test: OpsTest, application_name: str) -> Non
             expected_members_ips = get_application_units_ips(ops_test, application_name)
 
             r = requests.get(f"http://{address}:8008/cluster")
-            assert [member["name"] for member in r.json()["members"]] == expected_members
-            assert [member["host"] for member in r.json()["members"]] == expected_members_ips
+            assert [
+                member["name"] for member in r.json()["members"]
+            ] == expected_members
+            assert [
+                member["host"] for member in r.json()["members"]
+            ] == expected_members_ips
 
 
 def construct_endpoint(endpoint: str, region: str) -> str:
@@ -412,7 +426,9 @@ async def deploy_and_relate_bundle_with_postgresql(
                     with tempfile.NamedTemporaryFile() as overlay_file:
                         overlay_file.write(yaml.dump(overlay).encode("utf_8"))
                         overlay_file.seek(0)
-                        await ops_test.juju("deploy", patched.name, "--overlay", overlay_file.name)
+                        await ops_test.juju(
+                            "deploy", patched.name, "--overlay", overlay_file.name
+                        )
                 else:
                     await ops_test.juju("deploy", patched.name)
 
@@ -460,7 +476,8 @@ async def ensure_correct_relation_data(
     primary = await get_primary(ops_test, f"{DATABASE_APP_NAME}/0")
     for unit_number in range(database_units):
         for attempt in Retrying(
-            stop=stop_after_attempt(10), wait=wait_exponential(multiplier=1, min=2, max=30)
+            stop=stop_after_attempt(10),
+            wait=wait_exponential(multiplier=1, min=2, max=30),
         ):
             with attempt:
                 unit_name = f"{DATABASE_APP_NAME}/{unit_number}"
@@ -544,7 +561,8 @@ def get_application_units(ops_test: OpsTest, application_name: str) -> List[str]
         list of current unit names of the application
     """
     return [
-        unit.name.replace("/", "-") for unit in ops_test.model.applications[application_name].units
+        unit.name.replace("/", "-")
+        for unit in ops_test.model.applications[application_name].units
     ]
 
 
@@ -558,7 +576,10 @@ def get_application_units_ips(ops_test: OpsTest, application_name: str) -> List[
     Returns:
         list of current unit IPs of the application
     """
-    return [unit.public_address for unit in ops_test.model.applications[application_name].units]
+    return [
+        unit.public_address
+        for unit in ops_test.model.applications[application_name].units
+    ]
 
 
 async def get_landscape_api_credentials(ops_test: OpsTest) -> List[str]:
@@ -581,7 +602,9 @@ async def get_landscape_api_credentials(ops_test: OpsTest) -> List[str]:
     return output
 
 
-async def get_leader_unit(ops_test: OpsTest, app: str, model: Model = None) -> Optional[Unit]:
+async def get_leader_unit(
+    ops_test: OpsTest, app: str, model: Model = None
+) -> Optional[Unit]:
     if model is None:
         model = ops_test.model
 
@@ -608,7 +631,9 @@ async def get_machine_from_unit(ops_test: OpsTest, unit_name: str) -> str:
     return raw_hostname.strip()
 
 
-async def get_password(ops_test: OpsTest, unit_name: str, username: str = "operator") -> str:
+async def get_password(
+    ops_test: OpsTest, unit_name: str, username: str = "operator"
+) -> str:
     """Retrieve a user password using the action.
 
     Args:
@@ -721,7 +746,8 @@ async def check_tls(ops_test: OpsTest, unit_name: str, enabled: bool) -> bool:
     ]
     try:
         for attempt in Retrying(
-            stop=stop_after_attempt(10), wait=wait_exponential(multiplier=1, min=2, max=30)
+            stop=stop_after_attempt(10),
+            wait=wait_exponential(multiplier=1, min=2, max=30),
         ):
             with attempt:
                 output = await execute_query_on_unit(
@@ -762,7 +788,9 @@ async def check_tls(ops_test: OpsTest, unit_name: str, enabled: bool) -> bool:
         return False
 
 
-async def check_tls_replication(ops_test: OpsTest, unit_name: str, enabled: bool) -> bool:
+async def check_tls_replication(
+    ops_test: OpsTest, unit_name: str, enabled: bool
+) -> bool:
     """Returns whether TLS is enabled on the replica PostgreSQL instance.
 
     Args:
@@ -791,7 +819,9 @@ async def check_tls_replication(ops_test: OpsTest, unit_name: str, enabled: bool
     return True
 
 
-async def check_tls_patroni_api(ops_test: OpsTest, unit_name: str, enabled: bool) -> bool:
+async def check_tls_patroni_api(
+    ops_test: OpsTest, unit_name: str, enabled: bool
+) -> bool:
     """Returns whether TLS is enabled on Patroni REST API.
 
     Args:
@@ -812,7 +842,8 @@ async def check_tls_patroni_api(ops_test: OpsTest, unit_name: str, enabled: bool
 
     try:
         for attempt in Retrying(
-            stop=stop_after_attempt(10), wait=wait_exponential(multiplier=1, min=2, max=30)
+            stop=stop_after_attempt(10),
+            wait=wait_exponential(multiplier=1, min=2, max=30),
         ):
             with attempt, tempfile.NamedTemporaryFile() as temp_ca_file:
                 # Write the TLS CA to a temporary file to use it in a request.
@@ -844,7 +875,9 @@ def has_relation_exited(
     return True
 
 
-def remove_chown_workaround(original_charm_filename: str, patched_charm_filename: str) -> None:
+def remove_chown_workaround(
+    original_charm_filename: str, patched_charm_filename: str
+) -> None:
     """Remove the chown workaround from the charm."""
     with zipfile.ZipFile(original_charm_filename, "r") as charm_file, zipfile.ZipFile(
         patched_charm_filename, "w"
@@ -878,7 +911,9 @@ def remove_chown_workaround(original_charm_filename: str, patched_charm_filename
                 unix_attributes[charm_info.filename] = charm_info.external_attr >> 16
 
         for modified_charm_info in modified_charm_file.infolist():
-            modified_charm_info.external_attr = unix_attributes[modified_charm_info.filename] << 16
+            modified_charm_info.external_attr = (
+                unix_attributes[modified_charm_info.filename] << 16
+            )
 
 
 @retry(
@@ -952,7 +987,9 @@ async def scale_application(
     if change > 0:
         await model.applications[application_name].add_units(change)
     elif change < 0:
-        units = [unit.name for unit in model.applications[application_name].units[0:-change]]
+        units = [
+            unit.name for unit in model.applications[application_name].units[0:-change]
+        ]
         await model.applications[application_name].destroy_units(*units)
     await model.wait_for_idle(
         apps=[application_name],
@@ -973,7 +1010,8 @@ def restart_patroni(ops_test: OpsTest, unit_name: str, password: str) -> None:
     """
     unit_ip = get_unit_address(ops_test, unit_name)
     requests.post(
-        f"http://{unit_ip}:8008/restart", auth=requests.auth.HTTPBasicAuth("patroni", password)
+        f"http://{unit_ip}:8008/restart",
+        auth=requests.auth.HTTPBasicAuth("patroni", password),
     )
 
 
@@ -1046,13 +1084,19 @@ def switchover(
     assert response.status_code == 200
     app_name = current_primary.split("/")[0]
     minority_count = len(ops_test.model.applications[app_name].units) // 2
-    for attempt in Retrying(stop=stop_after_attempt(30), wait=wait_fixed(2), reraise=True):
+    for attempt in Retrying(
+        stop=stop_after_attempt(30), wait=wait_fixed(2), reraise=True
+    ):
         with attempt:
             response = requests.get(f"http://{primary_ip}:8008/cluster")
             assert response.status_code == 200
-            standbys = len([
-                member for member in response.json()["members"] if member["role"] == "sync_standby"
-            ])
+            standbys = len(
+                [
+                    member
+                    for member in response.json()["members"]
+                    if member["role"] == "sync_standby"
+                ]
+            )
             assert standbys >= minority_count
 
 
@@ -1108,7 +1152,9 @@ async def backup_operations(
     """Basic set of operations for backup testing in different cloud providers."""
     # Deploy S3 Integrator and TLS Certificates Operator.
     await ops_test.model.deploy(s3_integrator_app_name)
-    await ops_test.model.deploy(tls_certificates_app_name, config=tls_config, channel=tls_channel)
+    await ops_test.model.deploy(
+        tls_certificates_app_name, config=tls_config, channel=tls_channel
+    )
 
     # Deploy and relate PostgreSQL to S3 integrator (one database app for each cloud for now
     # as archive_mode is disabled after restoring the backup) and to TLS Certificates Operator
@@ -1124,7 +1170,9 @@ async def backup_operations(
 
     await ops_test.model.relate(database_app_name, tls_certificates_app_name)
     async with ops_test.fast_forward(fast_interval="60s"):
-        await ops_test.model.wait_for_idle(apps=[database_app_name], status="active", timeout=1000)
+        await ops_test.model.wait_for_idle(
+            apps=[database_app_name], status="active", timeout=1000
+        )
 
     # Configure and set access and secret keys.
     logger.info(f"configuring S3 integrator for {cloud}")
@@ -1138,7 +1186,9 @@ async def backup_operations(
     await ops_test.model.relate(database_app_name, s3_integrator_app_name)
     async with ops_test.fast_forward(fast_interval="60s"):
         await ops_test.model.wait_for_idle(
-            apps=[database_app_name, s3_integrator_app_name], status="active", timeout=1500
+            apps=[database_app_name, s3_integrator_app_name],
+            status="active",
+            timeout=1500,
         )
 
     primary = await get_primary(ops_test, f"{database_app_name}/0")
@@ -1170,7 +1220,9 @@ async def backup_operations(
 
     # With a stable cluster, Run the "create backup" action
     async with ops_test.fast_forward():
-        await ops_test.model.wait_for_idle(status="active", timeout=1000, idle_period=30)
+        await ops_test.model.wait_for_idle(
+            status="active", timeout=1000, idle_period=30
+        )
     logger.info("listing the available backups")
     action = await ops_test.model.units.get(replica).run_action("list-backups")
     await action.wait()
@@ -1231,7 +1283,9 @@ async def backup_operations(
             logger.info("restoring the backup")
             last_diff_backup = backups.split("\n")[-1]
             backup_id = last_diff_backup.split()[0]
-            action = await remaining_unit.run_action("restore", **{"backup-id": backup_id})
+            action = await remaining_unit.run_action(
+                "restore", **{"backup-id": backup_id}
+            )
             await action.wait()
             restore_status = action.results.get("restore-status")
             assert restore_status, "restore hasn't succeeded"
@@ -1248,7 +1302,9 @@ async def backup_operations(
     logger.info("checking that the backup was correctly restored")
     primary = await get_primary(ops_test, remaining_unit.name)
     address = get_unit_address(ops_test, primary)
-    with db_connect(host=address, password=password) as connection, connection.cursor() as cursor:
+    with db_connect(
+        host=address, password=password
+    ) as connection, connection.cursor() as cursor:
         cursor.execute(
             "SELECT EXISTS (SELECT FROM information_schema.tables"
             " WHERE table_schema = 'public' AND table_name = 'backup_table_1');"
@@ -1280,7 +1336,9 @@ async def backup_operations(
             logger.info("restoring the backup")
             last_full_backup = backups.split("\n")[-2]
             backup_id = last_full_backup.split()[0]
-            action = await remaining_unit.run_action("restore", **{"backup-id": backup_id})
+            action = await remaining_unit.run_action(
+                "restore", **{"backup-id": backup_id}
+            )
             await action.wait()
             restore_status = action.results.get("restore-status")
             assert restore_status, "restore hasn't succeeded"
@@ -1297,7 +1355,9 @@ async def backup_operations(
     primary = await get_primary(ops_test, remaining_unit.name)
     address = get_unit_address(ops_test, primary)
     logger.info("checking that the backup was correctly restored")
-    with db_connect(host=address, password=password) as connection, connection.cursor() as cursor:
+    with db_connect(
+        host=address, password=password
+    ) as connection, connection.cursor() as cursor:
         cursor.execute(
             "SELECT EXISTS (SELECT FROM information_schema.tables"
             " WHERE table_schema = 'public' AND table_name = 'backup_table_1');"

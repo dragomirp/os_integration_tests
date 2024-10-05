@@ -8,6 +8,10 @@ from pytest_operator.plugin import OpsTest
 
 from ..helpers import (
     CHARM_BASE,
+    CHARM,
+    POOL,
+    CHANNEL,
+    PROFILE,
     db_connect,
     get_password,
     get_patroni_cluster,
@@ -28,10 +32,6 @@ logger = logging.getLogger(__name__)
 
 charm = None
 
-CHARM = "postgresql"
-CHANNEL = "14/stable"
-POOL = "lxd-btrfs"
-
 
 @pytest.mark.group(1)
 @pytest.mark.abort_on_fail
@@ -47,7 +47,7 @@ async def test_build_and_deploy(ops_test: OpsTest) -> None:
             num_units=3,
             base=CHARM_BASE,
             storage={"pgdata": {"pool": POOL, "size": 2048}},
-            config={"profile": "testing"},
+            config={"profile": PROFILE},
         )
 
         # Deploy the second cluster
@@ -57,7 +57,7 @@ async def test_build_and_deploy(ops_test: OpsTest) -> None:
             channel=CHANNEL,
             num_units=1,
             base=CHARM_BASE,
-            config={"profile": "testing"},
+            config={"profile": PROFILE},
         )
 
         await ops_test.model.wait_for_idle(status="active", timeout=1500)
